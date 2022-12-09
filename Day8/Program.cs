@@ -10,7 +10,7 @@ var maxScenicCol = -1;
 
 var trees = treeInput
     .Select((row, rowIndex) =>
-        row.Select((treeHeight, colIndex) => new Tree(int.Parse(treeHeight.ToString()), rowIndex, colIndex)).ToArray())
+        row.Select((treeHeight, colIndex) => new Tree(treeHeight, rowIndex, colIndex)).ToArray())
     .ToArray();
 
 for (int rowIndex = 0; rowIndex < maxRowIndex; rowIndex++)
@@ -83,16 +83,7 @@ IEnumerable<Tree> GetVisibleTrees(IEnumerable<Tree> treeLine)
 int GetNumberOfVisibleTreesFromFirst(IEnumerable<Tree> treeLine)
 {
     var height = treeLine.First().Height;
-    var count = 0;
-    foreach (Tree tree in treeLine.Skip(1))
-    {
-        count++;
-        if (tree.Height >= height)
-        {
-            break;
-        }
-    }
-    return count;
+    return treeLine.Skip(1).TakeWhile(t => t.Height < height).Count() + 1;
 }
 
 record Tree(int Height, int Row, int Column);
