@@ -1,9 +1,13 @@
 ﻿var motions = File.ReadAllLines("input.txt");
 
 var head = new Head();
-var tail = new Tail();
+var tail = new Knot();
 
-tail.Follow(head);
+var ropeTail = new Knot[9];
+for (int i = 0; i < ropeTail.Length; i++)
+{
+    ropeTail[i] = new Knot();
+}
 
 foreach (var motion in motions)
 {
@@ -14,11 +18,25 @@ foreach (var motion in motions)
     for (int step = 0; step < stepCount; step++)
     {
         head.Move(direction);
-        tail.Follow(head);
-    }
+        tail.Follow(head.Position);
 
-    Console.WriteLine($"Tail visited {tail.VisitedPositions.Count} different positions.");
+        for (int i = 0; i < ropeTail.Length; i++)
+        {
+            if (i == 0)
+            {
+                ropeTail[i].Follow(head.Position);
+            }
+            else
+            {
+                ropeTail[i].Follow(ropeTail[i - 1].Position);
+            }
+        }
+    }
 }
+
+Console.WriteLine($"Tail visited {tail.VisitedPositions.Count} different positions.");
+Console.WriteLine($"Rope's tail visited {ropeTail[8].VisitedPositions.Count} different positions.");
+
 
 record Position
 {
@@ -61,14 +79,12 @@ class Head
                 Position.X--; break;
             default: throw new ArgumentException(direction, nameof(direction));
         };
-
-        Console.WriteLine($"Head moved to {Position}");
     }
 }
 
-class Tail
+class Knot
 {
-    public Tail()
+    public Knot()
     {
         VisitedPositions.Add(Position);
     }
@@ -77,32 +93,24 @@ class Tail
 
     public HashSet<Position> VisitedPositions { get; } = new();
 
-    public void Follow(Head head)
+    public void Follow(Position target)
     {
-        if (Position.Covers(head.Position))
+        if (Position.Covers(target) || Position.Touches(target))
         {
-            Console.WriteLine($"Tail covers head.");
+            return;
         }
-        else if (Position.Touches(head.Position))
-        {
-            Console.WriteLine($"Tail {Position} touches head.");
-        }
-        else
-        {
-            Console.WriteLine($"Tail {Position} must follow head.");
-            MovesToward(head.Position);
-            Console.WriteLine($"Tail moved to {Position}.");
-            VisitedPositions.Add(Position);
-        }
+
+        MovesToward(target);
+        VisitedPositions.Add(Position);
     }
 
     private void MovesToward(Position target)
     {
-        if(target.X > Position.X)
+        if (target.X > Position.X)
         {
             Position.X++;
         }
-        else if(target.X < Position.X)
+        else if (target.X < Position.X)
         {
             Position.X--;
         }
@@ -115,48 +123,5 @@ class Tail
         {
             Position.Y--;
         }
-
-        //if (target.X == Position.X)
-        //{
-        //    if (target.Y < Position.Y)
-        //    {
-        //        Position.Y++;
-        //    }
-        //    else if(target.Y > Position.Y)
-        //    {
-        //        Position.Y++;
-        //    }
-        //}
-        //else if (target.Y == Position.Y)
-        //{
-        //    if (target.X < Position.X)
-        //    {
-        //        Position.X++;
-        //    }
-        //    else if (target.X > Position.X)
-        //    {
-        //        Position.X++;
-        //    }
-        //}
-        //else if(target.X < Position.X && target.Y < Position.Y)
-        //{
-        //    Position.X--;
-        //    Position.Y--;
-        //}
-        //else if (target.X < Position.X && target.Y > Position.Y)
-        //{
-        //    Position.X--;
-        //    Position.Y;
-        //}
-        //else if (target.X < Position.X && target.Y < Position.Y)
-        //{
-        //    Position.X--;
-        //    Position.Y--;
-        //}
-        //else if (target.X < Position.X && target.Y < Position.Y)
-        //{
-        //    Position.X--;
-        //    Position.Y--;
-        //}
     }
 }
