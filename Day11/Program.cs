@@ -4,24 +4,28 @@ var monkeysNotes = File.ReadAllText("input.txt");
 
 var monkeys = monkeysNotes.Split("\r\n\r\n").Select(n => Monkey.FromNotes(n)).ToArray();
 
-const int numberOfRounds = 20;
+const int numberOfRounds = 10000; // or 20
+
+var superModulo = monkeys.Select(m => m.TestDivisibleby).Aggregate(1, (acc, next) => acc * next);
 
 for (int round = 0; round < numberOfRounds; round++)
 {
     foreach (var monkey in monkeys)
     {
-        monkey.ProceedRound(monkeys);
+        //monkey.ProceedRoundPart1(monkeys);
+        monkey.ProceedRoundPart2(monkeys, superModulo);
     }
 
-    Console.WriteLine();
-    Console.WriteLine($"After round {round + 1}, the monkeys are holding items with these worry levels:");
-    foreach (var monkey in monkeys)
+    if (numberOfRounds > 20 && round % 1000 == 0)
     {
-        Console.WriteLine($"{monkey.Name}: {string.Join(", ", monkey.Items)}");
+        Console.WriteLine();
+        Console.WriteLine($"After round {round + 1}, the monkeys are holding items with these worry levels:");
+        foreach (var monkey in monkeys)
+        {
+            Console.WriteLine($"{monkey.Name}: {string.Join(", ", monkey.WorryItems)}");
+        }
+        Console.WriteLine();
     }
-
-    Console.WriteLine();
-    //Console.ReadKey();
 }
 
 Console.WriteLine();
@@ -39,13 +43,13 @@ Console.WriteLine($"The monkey business level is {mostActiveMonkeys[0].Inspectio
 class Monkey
 {
     public string Name { get; private set; } = string.Empty;
-    public IList<long> Items { get; private set; } = Array.Empty<long>();
+    public IList<long> WorryItems { get; private set; } = Array.Empty<long>();
     public Func<long, long> WorryOperation { get; private set; } = (old) => old;
     public int TestDivisibleby { get; private set; }
     public int TestTrueThrowTo { get; private set; }
     public int TestFalseThrowTo { get; private set; }
 
-    public int InspectionCount { get; set; }
+    public long InspectionCount { get; set; }
 
     private Monkey() { }
 
@@ -56,7 +60,7 @@ class Monkey
         var monkey = new Monkey();
 
         monkey.Name = lines[0].TrimEnd(':');
-        monkey.Items = lines[1].Split(':')[1].Split(", ").Select(long.Parse).ToList();
+        monkey.WorryItems = lines[1].Split(':')[1].Split(", ").Select(long.Parse).ToList();
 
         var operationNote = lines[2].Split("= old ")[1].Split(' ');
         monkey.WorryOperation = operationNote switch
@@ -74,27 +78,42 @@ class Monkey
         return monkey;
     }
 
-    public void ProceedRound(Monkey[] allMonkeys)
+    public void ProceedRoundPart1(Monkey[] allMonkeys)
     {
         Logger.Log($"{Name}:");
 
-        for (int i = 0; i < Items.Count; i++)
+        for (int i = 0; i < WorryItems.Count; i++)
         {
             InspectionCount++;
-            Logger.Log($"  Monkey inspects an item with a worry level of {Items[i]}.");
-            Items[i] = WorryOperation(Items[i]);
-            Logger.Log($"    Worry level increased to {Items[i]}.");
-            Items[i] = Items[i] / 3;
-            Logger.Log($"    Monkey gets bored with item. Worry level is divided by 3 to {Items[i]}.");
+            Logger.Log($"  Monkey inspects an item with a worry level of {WorryItems[i]}.");
+            WorryItems[i] = WorryOperation(WorryItems[i]);
+            Logger.Log($"    Worry level increased to {WorryItems[i]}.");
+            WorryItems[i] = WorryItems[i] / 3;
+            Logger.Log($"    Monkey gets bored with item. Worry level is divided by 3 to {WorryItems[i]}.");
 
-            var testResult = Items[i] % TestDivisibleby == 0;
+            var testResult = WorryItems[i] % TestDivisibleby == 0;
             var newMonkey = testResult ? TestTrueThrowTo : TestFalseThrowTo;
             Logger.Log($"    Current worry level is {(testResult ? "" : "not")} divisible by {TestDivisibleby}.");
-            Logger.Log($"    Item with worry level {Items[i]} is thrown to monkey {newMonkey}.");
-            allMonkeys[newMonkey].Items.Add(Items[i]);
+            Logger.Log($"    Item with worry level {WorryItems[i]} is thrown to monkey {newMonkey}.");
+            allMonkeys[newMonkey].WorryItems.Add(WorryItems[i]);
         }
 
-        Items.Clear();
+        WorryItems.Clear();
+    }
+
+    public void ProceedRoundPart2(Monkey[] allMonkeys, long superModulo)
+    {
+        for (int i = 0; i < WorryItems.Count; i++)
+        {
+            InspectionCount++;
+            WorryItems[i] = WorryOperation(WorryItems[i]) % superModulo;
+
+            var testResult = WorryItems[i] % TestDivisibleby == 0;
+            var newMonkey = testResult ? TestTrueThrowTo : TestFalseThrowTo;
+            allMonkeys[newMonkey].WorryItems.Add(WorryItems[i]);
+        }
+
+        WorryItems.Clear();
     }
 }
 
