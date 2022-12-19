@@ -1,4 +1,4 @@
-﻿var lines = File.ReadAllLines("input");
+﻿var lines = File.ReadAllLines("input.txt");
 
 var calories = new SortedList<int, int>();
 var current = 0;
