@@ -21,6 +21,23 @@ for (int i = 0; i < pairs.Length; i++)
 Console.WriteLine();
 Console.WriteLine($"[Part 1] The sum of correct pair indexes is {correctOrderIndexSum}");
 
+var firstDivider = new Packet("[[2]]");
+var secondDivider = new Packet("[[6]]");
+
+var allPackets = pairs.SelectMany(p => new[] { p.Left, p.Right }).ToList();
+
+allPackets.Add(firstDivider);
+allPackets.Add(secondDivider);
+
+var orderedPackets = allPackets.Order().ToList();
+
+var firstDividerIndex = orderedPackets.IndexOf(firstDivider) + 1;
+var secondDividerIndex = orderedPackets.IndexOf(secondDivider) + 1;
+var decoderKey = firstDividerIndex * secondDividerIndex;
+
+Console.WriteLine();
+Console.WriteLine($"[Part 2] The divider packets are {firstDividerIndex}th and {secondDividerIndex}th, so the decoder key is {decoderKey}");
+
 
 static Pair ParsePair(string pair)
 {
@@ -39,7 +56,7 @@ record Pair(Packet Left, Packet Right)
 {
     public bool CompareOrder()
     {
-        return CompareOrderRec(Left.Value, Right.Value) switch
+        return PacketItem.CompareOrderRec(Left.Value, Right.Value) switch
         {
             CompareResult.OK => true,
             CompareResult.NOK => false,
@@ -47,50 +64,35 @@ record Pair(Packet Left, Packet Right)
             _ => throw new NotImplementedException(),
         };
     }
+}
 
-    private static CompareResult CompareOrderRec(PacketItem leftItem, PacketItem rightItem)
+class Packet : IComparable
+{
+    public Packet(string stringValue)
     {
-        if (leftItem is PacketList leftList && rightItem is PacketList rightList)
-        {
-            for (int i = 0; i < leftList.Items.Count; i++)
-            {
-                if (i >= rightList.Items.Count)
-                {
-                    return CompareResult.NOK;
-                }
+        StringValue = stringValue;
+        Value = PacketItem.ParsePacket(stringValue);
+    }
 
-                var result = CompareOrderRec(leftList.Items[i], rightList.Items[i]);
-                if (result != CompareResult.UNKNOWN)
-                {
-                    return result;
-                }
-            }
+    public string StringValue { get; set; }
+    public PacketList Value { get; set; }
 
-            if (leftList.Items.Count < rightList.Items.Count)
-            {
-                return CompareResult.OK;
-            }
-        }
-        else if (leftItem is PacketInteger leftInt && rightItem is PacketInteger rightInt)
+    public int CompareTo(object? obj)
+    {
+        var other = obj as Packet;
+        if(other == null)
         {
-            return Math.Sign(leftInt.Value - rightInt.Value) switch
-            {
-                -1 => CompareResult.OK,
-                0 => CompareResult.UNKNOWN,
-                1 => CompareResult.NOK,
-                _ => throw new ArgumentException(),
-            };
-        }
-        else if (leftItem is PacketInteger leftInt2 && rightItem is PacketList)
-        {
-            return CompareOrderRec(new PacketList(leftInt2), rightItem);
-        }
-        else if (leftItem is PacketList && rightItem is PacketInteger rightInt2)
-        {
-            return CompareOrderRec(leftItem, new PacketList(rightInt2));
+            return 1;
         }
 
-        return CompareResult.UNKNOWN;
+        return PacketItem.CompareOrderRec(Value, other.Value) switch
+        {
+            CompareResult.OK => -1,
+            CompareResult.NOK => 1,
+            CompareResult.UNKNOWN => throw new ArgumentException(),
+            _ => throw new NotImplementedException(),
+        };
+
     }
 }
 
@@ -153,18 +155,51 @@ abstract class PacketItem
 
         throw new ArgumentException("Invalid input", nameof(value));
     }
-}
 
-class Packet
-{
-    public Packet(string stringValue)
+    public static CompareResult CompareOrderRec(PacketItem leftItem, PacketItem rightItem)
     {
-        StringValue = stringValue;
-        Value = PacketItem.ParsePacket(stringValue);
-    }
+        if (leftItem is PacketList leftList && rightItem is PacketList rightList)
+        {
+            for (int i = 0; i < leftList.Items.Count; i++)
+            {
+                if (i >= rightList.Items.Count)
+                {
+                    return CompareResult.NOK;
+                }
 
-    public string StringValue { get; set; }
-    public PacketList Value { get; set; }
+                var result = CompareOrderRec(leftList.Items[i], rightList.Items[i]);
+                if (result != CompareResult.UNKNOWN)
+                {
+                    return result;
+                }
+            }
+
+            if (leftList.Items.Count < rightList.Items.Count)
+            {
+                return CompareResult.OK;
+            }
+        }
+        else if (leftItem is PacketInteger leftInt && rightItem is PacketInteger rightInt)
+        {
+            return Math.Sign(leftInt.Value - rightInt.Value) switch
+            {
+                -1 => CompareResult.OK,
+                0 => CompareResult.UNKNOWN,
+                1 => CompareResult.NOK,
+                _ => throw new ArgumentException(),
+            };
+        }
+        else if (leftItem is PacketInteger leftInt2 && rightItem is PacketList)
+        {
+            return CompareOrderRec(new PacketList(leftInt2), rightItem);
+        }
+        else if (leftItem is PacketList && rightItem is PacketInteger rightInt2)
+        {
+            return CompareOrderRec(leftItem, new PacketList(rightInt2));
+        }
+
+        return CompareResult.UNKNOWN;
+    }
 }
 
 class PacketList : PacketItem
